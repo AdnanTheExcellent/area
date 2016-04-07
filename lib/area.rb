@@ -15,13 +15,18 @@ module Area
   area_path = File.open(File.join(File.dirname(__FILE__), '..', 'data', 'areacodes.csv'))
 
   # there is probably a better way to do this...
-  if RUBY_VERSION.to_f >= 1.9
-    @area_codes = CSV.read(area_path)
-    @zip_codes = CSV.read(zip_path)
-  else
-    @area_codes = FasterCSV.parse(area_path)
-    @zip_codes = FasterCSV.parse(zip_path)
-  end
+  @area_codes = CSV.read(area_path)
+  zip_codes = CSV.read(zip_path)
+  @zip_codes = @zip_codes || {}
+  zip_codes.each do |zip_array|
+    zip = zip_array[0]
+    if /\A[-+]?\d+\z/ === zip #is an integer
+      zip = "%05d" % zip
+    else
+      zip = zip.gsub(/[\s\-]+/, '')
+    end
+    @zip_codes[zip] = [zip_array[1], zip_array[2]]
+  end if @zip_codes.blank?
 
   def self.area_codes
     @area_codes
@@ -46,16 +51,18 @@ module Area
   end
 
   def self.code_or_zip?(code)
-    if code.to_s.length == 3 or code.to_s.length == 5
-      return code
+    new_code = code.gsub(/[\s\-]+/, '')
+    if new_code.to_s.length == 3 or (5..6).cover? new_code.to_s.length
+      return new_code
     else
-      raise ArgumentError, "You must provide a valid area or zip code", caller
+      raise ArgumentError, "You must provide a valid area or zip code2343", caller
     end
   end
 
   def self.zip?(code)
-    if code.to_s.length == 5
-      return code
+    new_code = code.gsub(/[\s\-]+/, '')
+    if (5..6).cover? new_code.to_s.length
+      return new_code
     else
       raise ArgumentError, "You must provide zip code", caller
     end

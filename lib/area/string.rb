@@ -27,24 +27,34 @@ class String
   #
   # Returns a String of converted area codes or zipcodes.
   def to_region(options = {})
-    if self.to_s.length == 3  # an area code
-      row = Area.area_codes.find {|row| row.first == self.to_s }
+    string = filter_code(self)
+    if string.to_s.length == 3  # an area code
+      row = Area.area_codes.find {|row| row.first == string.to_s }
       return row.last if row
-    elsif self.to_s.length == 5
-      if row = Area.zip_codes.find {|row| row.first == self.to_s }
-        if row.first == self.to_s
+    elsif (5..6).cover? string.to_s.length
+        row = Area.zip_codes[string]
+        if row
           if options[:city]
-            return row[1]
+            return row[0]
           elsif options[:state]
-            return row[2]
+            return row[1]
+          elsif options[:country]
+            if string.to_s.length == 6
+	      return "CA"
+            else
+              return "US"
+            end
           else
-            return row[1] + ', ' + row[2]
+            return row[0] + ', ' + row[1]
           end
         end
-      end
     else
       raise ArgumentError, "You must provide a valid area or zip code", caller
     end
+  end
+
+  def filter_code(code)
+    code.gsub(/[\s\-]+/, '')
   end
 
 
